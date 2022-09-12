@@ -1,0 +1,13 @@
+
+add_custom_command(OUTPUT mirage-fuzz
+        COMMAND make -C ${CMAKE_CURRENT_SOURCE_DIR} OBJ_DST=${CMAKE_CURRENT_BINARY_DIR} mirage-fuzz
+)
+
+add_custom_target(FUZZER ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mirage-fuzz)
+
+        
+install (PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/mirage-fuzz 
+        DESTINATION ${MIRAGE_BIN_DIR}
+        PERMISSIONS WORLD_EXECUTE GROUP_EXECUTE OWNER_EXECUTE 
+                  OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+# install (DIRECTORY ...)
