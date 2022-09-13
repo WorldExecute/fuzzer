@@ -7329,7 +7329,7 @@ static void usage(u8 *argv0) {
          "Appended settings: \n\n"
 
          "  -D DTA_target - the target for DTA, should be instrumented with PIN mode\n"
-         "  -E            - mutate if mode\n"
+         "  -E            - phantom mode\n"
          "For additional tips, please consult %s/README.\n\n",
 
          argv0, EXEC_TIMEOUT, MEM_LIMIT, doc_path);
