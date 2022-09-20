@@ -436,7 +436,7 @@ static void edit_params(u32 argc, char **argv)
         cc_params[cc_par_cnt++] = "-funroll-loops";
     }
 
-    if (getenv("AFL_NO_BUILTIN"))
+    if (getenv("MIRAGE_NO_BUILTIN"))
     {
 
         cc_params[cc_par_cnt++] = "-fno-builtin-strcmp";
@@ -501,31 +501,6 @@ static void edit_params(u32 argc, char **argv)
             cc_params[cc_par_cnt++] = "none";
         }
 
-        if (is_cxx)
-        {
-            cc_params[cc_par_cnt++] = (const char *)"-stdlib=libc++";
-            // FIXME: or use the same header
-            // cc_params[cc_par_cnt++] = (u8*)"-I/path-to-llvm/include/c++/v1";
-            if (clang_type == CLANG_SOURCE_TYPE || clang_type == CLANG_PHANTOM_TYPE || clang_type == CLANG_INTEG_TYPE)
-            {
-                cc_params[cc_par_cnt++] = alloc_printf("-L%s/lib/libcxx_fast/", obj_path);
-                cc_params[cc_par_cnt++] = (const char *)"-lc++fast";
-                cc_params[cc_par_cnt++] = (const char *)"-Wl,--start-group";
-                cc_params[cc_par_cnt++] = (const char *)"-lc++abifast";
-                cc_params[cc_par_cnt++] = (const char *)"-lc++abi";
-                cc_params[cc_par_cnt++] = (const char *)"-Wl,--end-group";
-            }
-            //        else if (clang_type == CLANG_TRACK_TYPE) {
-            //            cc_params[cc_par_cnt++] =
-            //                    alloc_printf("-L%s/lib/libcxx_track/", obj_path);
-            //            cc_params[cc_par_cnt++] = (const char *) "-lc++";
-            //            cc_params[cc_par_cnt++] = (const char *) "-lc++track";
-            //            cc_params[cc_par_cnt++] = (const char *) "-Wl,--start-group";
-            //            cc_params[cc_par_cnt++] = (const char *) "-lc++abitrack";
-            //            cc_params[cc_par_cnt++] = (const char *) "-lc++abi";
-            //            cc_params[cc_par_cnt++] = (const char *) "-Wl,--end-group";
-            //        }
-        }
     }
     if (maybe_linking)
     {
