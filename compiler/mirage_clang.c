@@ -394,7 +394,7 @@ static void edit_params(u32 argc, char **argv)
             if (getenv("MIRAGE_HARDEN"))
                 FATAL("ASAN and MIRAGE_HARDEN are mutually exclusive");
 
-            OKF("Address Sanitizer Instrumentation!");
+            // OKF("Address Sanitizer Instrumentation!");
             cc_params[cc_par_cnt++] = "-U_FORTIFY_SOURCE";
             cc_params[cc_par_cnt++] = "-fsanitize=address";
         }
@@ -407,13 +407,13 @@ static void edit_params(u32 argc, char **argv)
             if (getenv("MIRAGE_HARDEN"))
                 FATAL("MSAN and MIRAGE_HARDEN are mutually exclusive");
 
-            OKF("Memory Sanitizer Instrumentation!");
+            // OKF("Memory Sanitizer Instrumentation!");
             cc_params[cc_par_cnt++] = "-U_FORTIFY_SOURCE";
             cc_params[cc_par_cnt++] = "-fsanitize=memory";
         }
         else if (getenv("USE_UBSAN"))
         {
-            OKF("Undefined Sanitizer Instrumentation!");
+            // OKF("Undefined Sanitizer Instrumentation!");
             cc_params[cc_par_cnt++] = "-fsanitize=undefined";
             cc_params[cc_par_cnt++] = "-fsanitize-undefined-trap-on-error";
             cc_params[cc_par_cnt++] = "-fno-sanitize-recover=all";
@@ -422,7 +422,7 @@ static void edit_params(u32 argc, char **argv)
         else if (getenv("USE_TSAN"))
         {
 
-            OKF("Thread Sanitizer Instrumentation!");
+            // OKF("Thread Sanitizer Instrumentation!");
             cc_params[cc_par_cnt++] = "-fsanitize=thread";
             cc_params[cc_par_cnt++] = "-fno-omit-frame-pointer";
         }
