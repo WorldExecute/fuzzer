@@ -52,11 +52,12 @@ typedef enum fuzz_strategy FuzzStrategy;
 FuzzStrategy fuzz_st;
 
 // ------------------------ From AFL-Fuzz -------------------------------------
-static u32 out_fd;
+static s32 dev_null_fd = -1;
+static s32 out_fd = -1;
 static u8 *out_file, /* File to fuzz, if any             */
     *out_dir,        /* Working & output directory       */
     *syn_dir;
-static u8 *DTA_file;
+static u8 *DTA_file = NULL;
 static s32 DTA_fd;
 static char **DTA_argv;
 static u8 *source_map_file;
@@ -72,14 +73,26 @@ enum {
 };
 
 static void write_for_DTA(void *mem, u32 len) {
-  unlink(DTA_file); /* Ignore errors. */
+  s32 fd = DTA_fd;
+  
+  if (DTA_file) {
 
-  s32 fd = open(DTA_file, O_WRONLY | O_CREAT | O_EXCL , 0600);
-  if (fd < 0) PFATAL("Unable to create '%s'", DTA_file);
+      unlink(DTA_file); /* Ignore errors. */
 
-  ck_write(fd, mem, len, DTA_file);
+      fd = open(DTA_file, O_WRONLY | O_CREAT | O_EXCL, 0600);
 
-  close(fd);
+      if (fd < 0) PFATAL("Unable to create '%s'", DTA_file);
+
+  } else lseek(fd, 0, SEEK_SET);
+
+  ck_write(fd, mem, len, out_file);
+
+  if (!DTA_file) {
+
+      if (ftruncate(fd, len)) PFATAL("ftruncate() failed");
+      lseek(fd, 0, SEEK_SET);
+
+  } else close(fd);
 }
 
 
@@ -100,7 +113,7 @@ enum ts_state { INIT, READY, HOLD, OKAY, NONE };
 typedef enum ts_state State;
 
 static s32 con_phantom_pid = -1;
-static s32 con_source_pid = -1;
+// static s32 con_source_pid = -1;
 static s32 pin_pid = -1;
 
 struct query {
@@ -152,12 +165,13 @@ static u8 *ts_answer_shm;
 static ExtSeed *ext_seed_cache[SEED_SET_SIZE];
 static u32 edge_list_idx = 0;
 static u8 query_update = 0;
-static u32 task_id = 0;
 
-static SeedPath *seeds_2_exec;
+#ifdef DEBUG_INFO
+static u32 task_id = 0;
+#endif
+
 u32 seed_exec_num = 0;
 
-static SeedPath *seeds_2_transfer;
 u32 seed_transfer_num = 0;
 
 // ------------------------My Variable ----------------------------------------
@@ -190,8 +204,8 @@ static u8 aug_edge_map[MAP_SIZE];
 static u32 aug_loc;
 // ----------- ext management ---------------------------
 static u8 *ext_bitmap = NULL;
-static u8 *orig_seed, *cur_seed, *last_seed;
-static u32 cur_len, last_len, ext_len, orig_len, tmp_len, llen, slen, tlen;
+static u8 *cur_seed, *last_seed;
+static u32 cur_len, last_len, ext_len, orig_len, llen, slen, tlen;
 
 static ExtSeed *ext_queue_top = NULL;
 ExtSeed *ext_queue_head = NULL;
@@ -227,8 +241,7 @@ FuzzMode fuzzMode;
 
 static ExtSeed *ts_history[SEED_SET_SIZE];
 
-static u8 *ext_buf = NULL, *out_buf = NULL, *in_buf = NULL, *last_buf = NULL,
-          *tmp_buf;
+static u8 *ext_buf = NULL, *out_buf = NULL, *in_buf = NULL, *last_buf = NULL;
 u8 *shared_file = NULL;
 // static u32 out_len;
 
@@ -554,8 +567,6 @@ static void parse_answer() {
     } else {
       u32 seed_len = *((u32 *)(ptr + 4));
       ptr += 12;
-
-      u32 len = strlen(ptr);
 
       u8 *name = ptr, *seed_path;
       seed_path = alloc_printf("%s/seeds/%s", ext_dir, name);
@@ -1159,7 +1170,7 @@ static void setup_shm() {
 
 }
 
-static void setup_DTA_argv() {
+static void setup_DTA_argv_file() {
   u32 i = 0;
   u8 *cwd = getcwd(NULL, 0);
   DTA_argv = ck_alloc(user_argc * sizeof(char *));
@@ -1169,7 +1180,7 @@ static void setup_DTA_argv() {
   while (user_argv[i]) {
     u8 *aa_loc = strstr(user_argv[i], ".cur_input");
     if (aa_loc) {
-      u8 *aa_subst, *n_arg;
+      u8 *n_arg;
 
       /* If we don't have a file name chosen yet, use a safe default. */
 
@@ -1192,6 +1203,20 @@ static void setup_DTA_argv() {
   }
 
   free(cwd); /* not tracked */
+}
+
+
+void setup_stdin_file_for_DTA(void) {
+
+    u8 *fn = alloc_printf("%s/.cur_input_DTA", out_dir);
+
+    unlink(fn); /* Ignore errors */
+
+    DTA_fd = open(fn, O_RDWR | O_CREAT | O_EXCL, 0600);
+
+    if (DTA_fd < 0) PFATAL("Unable to create '%s'", fn);
+
+    ck_free(fn);
 }
 
 static void setup_DTA() {
@@ -1219,7 +1244,7 @@ void phantom_write_info_2_mmap() {
     PFATAL("open() failed");
   }
 
-  ftruncate(fd, SHARE_SIZE);
+  if (ftruncate(fd, SHARE_SIZE)) PFATAL("ftruncate() failed");
 
   char *mm = (char *)mmap(NULL, SHARE_SIZE, PROT_WRITE, MAP_SHARED, fd, 0);
   if (mm == MAP_FAILED) {
@@ -1301,7 +1326,8 @@ void mem_initialize() {
   memset(aug_edge_map, 0, MAP_SIZE);
 }
 
-static inline void setup_files(u32 out_fd_, u8 *out_file_, u8 *out_dir_, u8 *syn_dir_) {
+static inline void setup_files(s32 dev_null_fd_, s32 out_fd_, u8 *out_file_, u8 *out_dir_, u8 *syn_dir_) {
+  dev_null_fd = dev_null_fd_;
   out_fd = out_fd_;
   out_file = out_file_;
   out_dir = out_dir_;
@@ -1316,7 +1342,7 @@ static inline void setup_files(u32 out_fd_, u8 *out_file_, u8 *out_dir_, u8 *syn
   }
 }
 
-void setup_enhancement(u32 out_fd_, u8 *out_file_, u8 *out_dir_, u8 *syn_dir_,
+void setup_enhancement(s32 dev_null_fd_, s32 out_fd_, u8 *out_file_, u8 *out_dir_, u8 *syn_dir_,
                        u32 user_argc_, FuzzMode mode, u8 *taint_target,
                        u32 *afl_queue_size, u32 timeout,
                        SaveIfInteresting save_func, FuzzBuf try_once,
@@ -1337,7 +1363,7 @@ void setup_enhancement(u32 out_fd_, u8 *out_file_, u8 *out_dir_, u8 *syn_dir_,
 
   user_argc = user_argc_;
 
-  setup_files(out_fd_, out_file_, out_dir_, syn_dir_);
+  setup_files(dev_null_fd_, out_fd_, out_file_, out_dir_, syn_dir_);
   mem_initialize();
 
   shared_file = alloc_printf("%s/" SHARE_FILE, syn_dir);
@@ -1375,7 +1401,9 @@ void setup_enhancement(u32 out_fd_, u8 *out_file_, u8 *out_dir_, u8 *syn_dir_,
       (fuzzMode != MutateIf && fuzzMode != ConMutateIf)) {
     setup_DTA();
   }
-  setup_DTA_argv();
+  setup_DTA_argv_file();
+  if (!DTA_file) 
+    setup_stdin_file_for_DTA();
 
   debug_mode = !!getenv("DEBUG");
   if (fuzzMode == Source) {
@@ -1419,7 +1447,6 @@ int set_taint_target(char *target) {
   return 1;
 }
 
-// todo : 不要老是fork！！ 做成 forkserver ?
 void taint_analysis_run(TaintMode mode, char *argv[]) {
   if (!PIN_PATH) {
     return;
@@ -1433,8 +1460,8 @@ void taint_analysis_run(TaintMode mode, char *argv[]) {
         alloca((user_argc + extra_args_num) * sizeof(char *));
     // int fd = open("taint_analysis.txt", O_WRONLY | O_CREAT | O_EXCL, 0600);
     // redirect standard output and error to file.
-    close(1);
-    close(2);
+    // close(1);
+    // close(2);
     // dup(fd);
     // dup(fd);
 
@@ -1460,6 +1487,24 @@ void taint_analysis_run(TaintMode mode, char *argv[]) {
       }
       LOGD("\n");
     }
+
+
+    setsid();
+
+    dup2(dev_null_fd, 1);
+    dup2(dev_null_fd, 2);
+
+    if (DTA_file) {
+
+        dup2(dev_null_fd, 0);
+
+    } else {
+
+        dup2(DTA_fd, 0);
+        close(DTA_fd);
+
+    }
+    close(dev_null_fd);
 
     reset_taint_shm(mode);
     execvp((char *)PIN_PATH, taint_run_argv);
@@ -1791,9 +1836,8 @@ u8 pre_splice(u32 curr_id, u8 *curr_seed_path, u8 *curr_buf, u32 curr_len) {
   } else {
     cur_id = curr_id;
     curExtSeed = ts_history[curr_id];
-    u32 to_ext_id = curExtSeed ? curExtSeed->id : 0;
     LOGD("---\n curr id: %u, to ext id: %u, cum size: %u \n---\n", curr_id,
-         to_ext_id, cum_ext_queue_size);
+         curExtSeed ? curExtSeed->id : 0, cum_ext_queue_size);
     if (curExtSeed && curExtSeed->next == NULL) {
       pre_splice_time += get_cur_time() - time;
       print_time_count++;

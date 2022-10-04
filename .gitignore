@@ -1,4 +1,7 @@
 build/
 .clangd
 .vscode
+script/
+seeds/
+seeds_binary/
 !.gitignore

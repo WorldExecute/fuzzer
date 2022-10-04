@@ -124,7 +124,7 @@ void reset_source_shm();
  * @param out_dir_  输出的目录
  * @param user_argc_  用户args的实际size
  */
-void setup_enhancement(u32 out_fd_, u8 *out_file_, u8 *out_dir_, u8 *syn_dir_,
+void setup_enhancement(s32 dev_null_fd, s32 out_fd_, u8 *out_file_, u8 *out_dir_, u8 *syn_dir_,
                        u32 user_argc_, FuzzMode mode, u8 *taint_target,
                        u32 *queue_size, u32 timeout,
                        SaveIfInteresting save_func, FuzzBuf try_once,

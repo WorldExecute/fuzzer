@@ -6814,7 +6814,7 @@ static u8 fuzz_one(char **argv) {
         
 
         ExtSeed *ext_seed = NULL;
-        u32 explore_id = 0, explore_edge, tmp_cnt;
+        u32 explore_id = 0, explore_edge;
 
         struct tm t;   //tm结构指针
         time_t now;  //声明time_t类型变量
@@ -7329,7 +7329,7 @@ static void usage(u8 *argv0) {
          "Appended settings: \n\n"
 
          "  -D DTA_target - the target for DTA, should be instrumented with PIN mode\n"
-         "  -E            - phantom mode\n"
+         "  -E            - mutate if mode\n"
          "For additional tips, please consult %s/README.\n\n",
 
          argv0, EXEC_TIMEOUT, MEM_LIMIT, doc_path);
@@ -8316,11 +8316,10 @@ int main(int argc, char **argv) {
 
 
     // ------------ My Mod -------------
-    setup_enhancement(out_fd, out_file, out_dir, sync_dir, argc - optind,
-                      fuzzMode, taint_target,  &queued_paths, exec_tmout,
-                     save_if_interesting,  common_fuzz_stuff, 
-                     run_target, write_to_testcase, 
-                      argv + optind);
+    setup_enhancement(dev_null_fd, out_fd, out_file, out_dir, sync_dir,
+                     argc - optind, fuzzMode, taint_target,  &queued_paths, 
+                     exec_tmout, save_if_interesting,  common_fuzz_stuff, 
+                     run_target, write_to_testcase, argv + optind);
 
     // ---------------------------------
 
