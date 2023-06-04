@@ -18,7 +18,6 @@
  * Modified from LafIntel.
  */
 
-#include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
@@ -32,6 +31,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include "Pass.h"
 #include "utils.h"
 
 using namespace llvm;
@@ -152,6 +152,7 @@ static void preHandleCmpInst(Module &M)
 
 
 /* splits icmps of size bitw into two nested icmps with bitw/2 size each */
+[[maybe_unused]]
 static bool splitCompares(Module &M, unsigned bitw)
 {
     LLVMContext &C = M.getContext();

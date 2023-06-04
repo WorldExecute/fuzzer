@@ -1,7 +1,10 @@
 build/
+build*/
 .clangd
 .vscode
+.*/
 script/
 seeds/
 seeds_binary/
 !.gitignore
+compile_commands.json

@@ -35,6 +35,7 @@
 #include "llvm/Analysis/ValueTracking.h"
 
 #include "utils.h"
+#include "Pass.h"
 #include <fcntl.h>
 
 #include <set>

@@ -1056,8 +1056,35 @@ void NestedIf::markHoistBarrier()
         if (ni->isRoot())
             continue;
 
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
         ni->extractHoistedInsnDepVals(hoistedInsnDepVals);
-    
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
         NestedIfNode *parent = ni->getParent(), *cur = ni;
         
         if (ni->isCompareSplit())
@@ -1082,7 +1109,14 @@ void NestedIf::markHoistBarrier()
             if (hasIntersect(parent->getDirectDepVals(), hoistedInsnDepVals))
             {
                 ni->setHoistBorder(cur);
-             
+                
+                
+                
+                
+                
+                
+                
+                
                 break;
             }
             cur = parent;
@@ -1161,7 +1195,19 @@ void NestedIf::doSinkInstr()
                     *elseEdge = ni->getElseEdge();
 
         if (PhantomMode || IntegMode)
-        {        
+        {
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
 
             Instruction *insertPoint = cond->getNextNonDebugInstruction();
             
@@ -1350,7 +1396,15 @@ static u32 extractNestedIfs(SmallVectorImpl<NestedIf *> &vec)
             Instruction *cond = dyn_cast<Instruction>(br->getCondition());
             if (!cond)
                 continue;
-              
+            
+            
+            
+            
+            
+            
+            
+            
+            
             BasicBlock *parentBB = getOuterBlock(BB, scopeHeader);
             NestedIfNode *parentNode = bb2node[parentBB];
             NestedIfNode *node;

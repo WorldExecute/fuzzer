@@ -25,6 +25,8 @@
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/Support/Casting.h"
+#include <cstdint>
+#include <functional>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,6 +55,7 @@
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Mem2Reg.h"
 #include "utils.h"
+#include "Pass.h"
 
 using namespace llvm;
 static ConstantInt *ZERO;
@@ -294,9 +297,10 @@ static bool transformStrstr(Module &M) {
     cond = IRB.CreateICmpNE(repl, ZERO);
     BranchInst::Create(bb3, end_bb, cond, bb2);
 
+
     BasicBlock *split_end_bb = splitCmp(
         cmpLen, ptr, false, dyn_cast<Instruction>(repl),
-        [CmpStr](uint64_t idx, auto) {
+        [CmpStr](uint64_t idx, auto&) {
           return idx == CmpStr.size() ? ConstantInt::get(Int8Ty, 0)
                                       : ConstantInt::get(Int8Ty, CmpStr[idx]);
         });
@@ -479,7 +483,7 @@ static bool transformCmps(Module &M, const bool processStrcmp,
       }
       errs() << "str, len " << constLen << ": " << ConstStr << "\n";
       splitCmp(constLen, VarArg, ConstFirst, callInst,
-               [ConstStr](uint64_t idx, auto) {
+               [ConstStr](uint64_t idx, auto&) {
                  return (idx == ConstStr.size()
                              ? ConstantInt::get(Int8Ty, 0)
                              : ConstantInt::get(Int8Ty, ConstStr[idx]));
@@ -494,7 +498,7 @@ static bool transformCmps(Module &M, const bool processStrcmp,
       errs() << "mem, " << *ConstArg << "\n";
       if (getConstantDataArrayInfo(ConstArg, ConstSlice, 8, 0)) {
         splitCmp(specifiedLen, VarArg, ConstFirst, callInst,
-                 [ConstSlice](uint64_t idx, auto) {
+                 [ConstSlice](uint64_t idx, auto&) {
                    return ConstantInt::get(Int8Ty, ConstSlice[idx]);
                  });
       } else {

@@ -1,9 +1,10 @@
-#include <llvm-10/llvm/ADT/ArrayRef.h>
-#include <llvm-10/llvm/ADT/StringRef.h>
-#include <llvm-10/llvm/Analysis/CGSCCPassManager.h>
-#include <llvm-10/llvm/IR/PassManager.h>
-#include <llvm-10/llvm/Transforms/Scalar/LoopPassManager.h>
-#include "utils.h"
+#include "Pass.h"
+
+#include <llvm/ADT/ArrayRef.h>
+#include <llvm/ADT/StringRef.h>
+#include <llvm/Analysis/CGSCCPassManager.h>
+#include <llvm/IR/PassManager.h>
+#include <llvm/Transforms/Scalar/LoopPassManager.h>
 
 #include "llvm/Transforms/Utils/Local.h"
 #include "llvm/Passes/PassBuilder.h"
@@ -65,7 +66,7 @@ PreservedAnalyses SimpleSimplifyCFGPass::run(Function &F, FunctionAnalysisManage
 
 extern "C"::llvm::PassPluginLibraryInfo getPassPluginInfo() {
     const auto callback = [](PassBuilder &PB) {
-        PB.registerPipelineStartEPCallback([&](ModulePassManager &MPM) {
+        PB.registerPipelineStartEPCallback([&](ModulePassManager &MPM, llvm::PassBuilder::OptimizationLevel) {
             MPM.addPass(createModuleToFunctionPassAdaptor(SimpleSimplifyCFGPass()));
             return true;
         });

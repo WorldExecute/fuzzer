@@ -21,6 +21,8 @@
 #include "llvm/Passes/PassBuilder.h"
 #include <unistd.h>
 
+
+#include "Pass.h"
 using namespace llvm;
 
 void commonModuleTransform(Module &M, bool NoLaf)
@@ -91,7 +93,7 @@ void doO3Optimization(Module &M, bool DebugLogging, bool LTOPreLink) {
     PB.registerLoopAnalyses(LAM);
     PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
 
-    ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(PassBuilder::O3, DebugLogging, LTOPreLink);
+    ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(llvm::PassBuilder::OptimizationLevel::O3, LTOPreLink);
     MPM.run(M, MAM);
 }
 
@@ -102,7 +104,7 @@ void doO3Optimization(Module &M, bool DebugLogging, bool LTOPreLink) {
  * @return std::string 
  */
 std::string getModuleName(Module& M) {
-    std::string mName = M.getName();
+    auto mName = M.getName().str();
     // int BB_Size=0;
     // for (auto &F: M) {
     //     for (auto &BB: F) {

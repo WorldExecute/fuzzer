@@ -107,49 +107,15 @@
 #define isCmpBranch(bb) (isCmpThen(bb) || isCmpElse(bb))
 #define isInsnHasCmpOp(insn) (insn->getMetadata(CMP_OP) != nullptr)
 
-using namespace llvm;
 
-namespace llvm {
-    class SplitFuncCmpPass : public PassInfoMixin<SplitFuncCmpPass> {
-    public:
-        PreservedAnalyses run(Module &M, ModuleAnalysisManager &AM);
-    };
 
-    class SplitNByteCmpPass : public PassInfoMixin<SplitNByteCmpPass> {
-    public:
-        PreservedAnalyses run(Module &M, ModuleAnalysisManager &AM);
-    };
+bool checkFunctionInWhiteList(llvm::Function *F);
 
-    class SplitSwitchPass : public PassInfoMixin<SplitSwitchPass> {
-    public:
-        PreservedAnalyses run(Module &M, ModuleAnalysisManager &AM);
-    };
+void commonModuleTransform(llvm::Module &, bool);
+void doO3Optimization(llvm::Module &M, bool DebugLogging, bool LTOPreLink);
+std::string getModuleName(llvm::Module& M);
 
-    /**
-     * @brief The simplified version of the official SimplifyCFGPass
-     * 
-     * The official SimplifyCFGPass would do lots of mirage optimizations on CFG simplification, some of which damage the semanitic of fuzzing. 
-     * Hence, a new simple SimplifyCFGPass is on demand, which eliminates the BB in the premise of fuzzing sematic being unchanged.
-     * 
-     */
-    class SimpleSimplifyCFGPass : public PassInfoMixin<SimpleSimplifyCFGPass> {
-    public:
-        PreservedAnalyses run(Function &F, FunctionAnalysisManager &AM);
-        
-        // /**
-        // * 不会被跳过， 即使是 optnone
-        // */
-        // static bool isRequired() { return true; }
-    };
-}
-
-bool checkFunctionInWhiteList(Function *F);
-
-void commonModuleTransform(Module &, bool);
-void doO3Optimization(Module &M, bool DebugLogging, bool LTOPreLink);
-std::string getModuleName(Module& M);
-
-bool isSanitizeFunc(Function *F);
+bool isSanitizeFunc(llvm::Function *F);
 
 //bool promoteMemoryToRegister(Function &F, DominatorTree &DT,
 //                             AssumptionCache &AC);
