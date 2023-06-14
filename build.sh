@@ -16,7 +16,8 @@ rm -rf ${PREFIX}
 mkdir -p ${PREFIX}
 cd ${ROOT_DIR}/lib
 # Cound not set CC/CXX before building libdft64, as it would build failed.
-unset CC CXX
+# Some CFLAGS/CXXFLAGS are not compatible with clang/gcc.
+unset CC CXX CFLAGS CXXFLAGS
 ./build-lib.sh
 cd ${ROOT_DIR}
 
