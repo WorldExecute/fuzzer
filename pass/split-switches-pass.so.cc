@@ -259,10 +259,8 @@ static bool splitSwitches(Module &M)
     return false;
   errs() << "Rewriting " << switches.size() << " switch statements "
          << "\n";
-  int i = 0;
   for (auto &SI : switches)
   {
-    i++;
     BasicBlock *CurBlock = SI->getParent();
     BasicBlock *OrigBlock = CurBlock;
     Function *F = CurBlock->getParent();

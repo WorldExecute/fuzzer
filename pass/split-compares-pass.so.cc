@@ -152,6 +152,7 @@ static void preHandleCmpInst(Module &M)
 
 
 /* splits icmps of size bitw into two nested icmps with bitw/2 size each */
+[[maybe_unused]]
 static bool splitCompares(Module &M, unsigned bitw)
 {
     LLVMContext &C = M.getContext();

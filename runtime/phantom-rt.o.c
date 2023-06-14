@@ -25,7 +25,10 @@
 
    This code is the rewrite of afl-as.h's main_payload.
 */
+
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE /* Bring REG_XXX names from /usr/include/sys/ucontext.h */
+#endif
 
 #include "./android-ashmem.h"
 #include "./config.h"

@@ -174,7 +174,7 @@ static void check_type(char *name)
     }
 }
 
-static u8 check_if_assembler(u32 argc, const char **argv)
+static u8 check_if_assembler(u32 argc, char **argv)
 {
     /* Check if a file with an assembler extension ("s" or "S") appears in argv */
 
@@ -609,7 +609,7 @@ int main(int argc, char **argv)
             fprintf(f, "%s \\\n", argv[i++]);
         }
         fprintf(f, "\n\n");
-        char **str = cc_params;
+        char **str = (char **) cc_params;
         while (*str != NULL)
         {
             fprintf(f, "%s \\\n", *str);
