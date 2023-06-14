@@ -3,6 +3,9 @@ add_executable(
     mirage_clang.c
 )
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-pointer-sign")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-pointer-sign")
+
 set_target_properties(MirageClang PROPERTIES OUTPUT_NAME "mirage-clang")
 
 add_custom_command(TARGET MirageClang POST_BUILD

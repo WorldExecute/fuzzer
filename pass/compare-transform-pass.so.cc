@@ -83,6 +83,7 @@ static inline bool isReadOnlyCall(Instruction *insn) {
  * }
  * @return
  */
+[[may_unused]]
 static inline Value *getActualConstantValue() { return nullptr; }
 
 static bool isRootAtMainArgv(Instruction *insn, Argument *target) {

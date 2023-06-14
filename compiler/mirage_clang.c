@@ -178,9 +178,10 @@ static u8 check_if_assembler(u32 argc, const char **argv)
 {
     /* Check if a file with an assembler extension ("s" or "S") appears in argv */
 
+    u8 *cur = NULL;
     while (--argc)
     {
-        u8 *cur = *(++argv);
+        cur = *(++argv);
 
         const u8 *ext = strrchr(cur, '.');
         if (ext && (!strcmp(ext + 1, "s") || !strcmp(ext + 1, "S")))
