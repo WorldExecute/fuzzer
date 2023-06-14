@@ -132,7 +132,7 @@ For `phantom fuzzing`:
 `mirage-fuzz -E -i <init-seeds-dir> -o <out-dir> -S source -D <pin-mode-target> <phantom-mode-target> [argvs]`
 
 For the third fuzzing process:
-`mirage-fuzz -E -i <init-seeds-dir> -o <out-dir> -S afl <afl-mode-target> [argvs]`
+`mirage-fuzz -i <init-seeds-dir> -o <out-dir> -S afl <afl-mode-target> [argvs]`
 
 Note that all the three fuzzing processes share the same `out-dir`.
 

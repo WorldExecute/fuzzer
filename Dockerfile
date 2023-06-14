@@ -24,4 +24,4 @@ VOLUME ["/data"]
 
 WORKDIR /data
 # # ENTRYPOINT [ "/opt/env.init" ]
-ENTRYPOINT [ "/bin/bash" ]doc
+ENTRYPOINT [ "/bin/bash" ]

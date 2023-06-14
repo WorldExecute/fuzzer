@@ -1,7 +1,12 @@
-build/
+build*/
 .clangd
 .vscode
 script/
 seeds/
 seeds_binary/
 !.gitignore
+*.so
+*.o
+*.out
+obj-intel64/
+obj-intel32/

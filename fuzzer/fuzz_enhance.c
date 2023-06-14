@@ -447,7 +447,7 @@ static inline void update_compact_exp_edges() {
 
 #else
   u32 *current = (u32 *)source_map;
-  u32 *current = (u32 *)virgin_bits;
+  u32 *virgin = (u32 *)virgin_bits;
 
   u32 i = (MAP_SIZE >> 2);
   static const u8 BOUND = 4;
