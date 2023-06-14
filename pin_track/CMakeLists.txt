@@ -1,7 +1,7 @@
 
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/pin_track.so
     POST_BUILD
-    COMMAND make -C ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMAND env CC=gcc CXX=g++ make -C ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND ln -s ${CMAKE_CURRENT_SOURCE_DIR}/obj-intel64/pin_track.so ${CMAKE_BINARY_DIR}/pin_track.so
 )
 

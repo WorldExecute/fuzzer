@@ -14,8 +14,8 @@ ENV PIN_ROOT=/${PIN_TAR_NAME}
 ENV MIRAGE_PATH=/fuzzer/build
 ENV PATH=${PATH}:${MIRAGE_PATH}:${PIN_ROOT}
 
-RUN wget http://software.intel.com/sites/landingpage/pintool/downloads/${PIN_TAR_NAME}.tar.gz \
-    && tar xvf ${PIN_TAR_NAME}.tar.gz
+RUN wget http://software.intel.com/sites/landingpage/pintool/downloads/${PIN_TAR_NAME}.tar.gz -O /${PIN_TAR_NAME}.tar.gz \
+    && tar xvf /${PIN_TAR_NAME}.tar.gz -C /
 
 ADD . /fuzzer
 RUN cd /fuzzer && ./build.sh

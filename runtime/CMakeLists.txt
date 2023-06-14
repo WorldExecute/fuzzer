@@ -50,8 +50,8 @@ add_library(
 )
 
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -Wno-pointer-sign")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wno-pointer-sign")
 
 install (TARGETS AFL_RT DESTINATION ${MIRAGE_LIB_DIR})
 install (TARGETS SOURCE_RT DESTINATION ${MIRAGE_LIB_DIR})
