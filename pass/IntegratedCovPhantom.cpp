@@ -1,8 +1,10 @@
-#include <stack>
 
-#include <string.h>
 #include "config.h"
+#include "utils.h"
 #include "debug.h"
+
+#include <stack>
+#include <string.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -37,9 +39,7 @@
 #include "llvm/InitializePasses.h"
 #include <vector>
 
-#include "debug.h"
 #include <ostream>
-#include "utils.h"
 
 using namespace llvm;
 
@@ -1786,7 +1786,7 @@ static void prepare(Module &M)
 
 bool IntegratedCovPhantom::doInitialization(Module &module)
 {
-    moduleName = getModuleName(module);
+    moduleName = getUniqModuleName(module);
     uid_t uid = getuid();
     struct passwd *pw = getpwuid(uid);
     std::string edgeIdFilePath = pw->pw_dir;

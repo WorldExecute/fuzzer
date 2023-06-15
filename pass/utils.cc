@@ -101,18 +101,9 @@ void doO3Optimization(Module &M, bool DebugLogging, bool LTOPreLink) {
  * @param M 
  * @return std::string 
  */
-std::string getModuleName(Module& M) {
+std::string getUniqModuleName(Module& M) {
     std::string mName = M.getName();
-    // int BB_Size=0;
-    // for (auto &F: M) {
-    //     for (auto &BB: F) {
-    //         BB_Size ++;
-    //     }
-    // }
-    // char num[11];
-    // sprintf(num, "%u", BB_Size);
-    // mName += "-";
-    // mName += num; 
+
     char num[11];
     sprintf(num, "%u", M.getInstructionCount());
     mName += "-";

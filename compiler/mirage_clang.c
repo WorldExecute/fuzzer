@@ -21,6 +21,20 @@
 
 #define MIRAGE_MAIN
 
+#ifndef WRAPPED_CLANG
+#define WRAPPED_CLANG clang
+#endif
+
+#ifndef WRAPPED_CLANGXX
+#define WRAPPED_CLANGXX clang++ 
+#endif
+
+#define __QUOTE(x) #x
+#define __MIRAGE_STR(x) __QUOTE(x)
+#define W_CLANG   __MIRAGE_STR(WRAPPED_CLANG)
+#define W_CLANGXX __MIRAGE_STR(WRAPPED_CLANGXX)
+
+
 #include "alloc-inl.h"
 #include "debug.h"
 #include "defs.h"
@@ -303,12 +317,12 @@ static void edit_params(u32 argc, char **argv)
     if (is_cxx)
     {
         u8 *alt_cxx = getenv("MIRAGE_CXX");
-        cc_params[0] = alt_cxx ? alt_cxx : (u8 *)"clang++";
+        cc_params[0] = alt_cxx ? alt_cxx : (u8 *)W_CLANGXX;
     }
     else
     {
         u8 *alt_cc = getenv("MIRAGE_CC");
-        cc_params[0] = alt_cc ? alt_cc : (u8 *)"clang";
+        cc_params[0] = alt_cc ? alt_cc : (u8 *)W_CLANG;
     }
 
     maybe_assembler = check_if_assembler(argc, argv);
@@ -553,10 +567,10 @@ int main(int argc, char **argv)
         }
         else if (argv[1][0] == '-') {
             if (strstr(argv[0], "mirage-clang++")) {
-                execlp("clang++", "clang++", argv[1], NULL);
+                execlp(W_CLANGXX, W_CLANGXX, argv[1], NULL);
             }
             else {
-                execlp("clang", "clang", argv[1], NULL);    
+                execlp(W_CLANG, W_CLANG, argv[1], NULL);    
             }
         }
     } 

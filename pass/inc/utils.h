@@ -147,7 +147,7 @@ bool checkFunctionInWhiteList(Function *F);
 
 void commonModuleTransform(Module &, bool);
 void doO3Optimization(Module &M, bool DebugLogging, bool LTOPreLink);
-std::string getModuleName(Module& M);
+std::string getUniqModuleName(Module& M);
 
 bool isSanitizeFunc(Function *F);
 
