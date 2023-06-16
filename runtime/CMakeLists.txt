@@ -49,6 +49,20 @@ add_library(
     dta-rt.c
 )
 
+# Use libc++ instead of libstdc++ for drivers
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # compile
+    set_target_properties(AFL     PROPERTIES COMPILE_FLAGS "-stdlib=libc++")
+    set_target_properties(Source  PROPERTIES COMPILE_FLAGS "-stdlib=libc++")
+    set_target_properties(Phantom PROPERTIES COMPILE_FLAGS "-stdlib=libc++")
+    set_target_properties(DTA     PROPERTIES COMPILE_FLAGS "-stdlib=libc++") 
+
+    # link
+    set_target_properties(AFL     PROPERTIES LINK_FLAGS "-stdlib=libc++")
+    set_target_properties(Source  PROPERTIES LINK_FLAGS "-stdlib=libc++")
+    set_target_properties(Phantom PROPERTIES LINK_FLAGS "-stdlib=libc++")
+    set_target_properties(DTA     PROPERTIES LINK_FLAGS "-stdlib=libc++")
+endif()
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -Wno-pointer-sign")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wno-pointer-sign")

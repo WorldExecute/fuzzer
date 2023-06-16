@@ -49,7 +49,7 @@
 static u8 *obj_path;       /* Path to runtime libraries         */
 static u8 **cc_params;     /* Parameters passed to the real CC  */
 static u32 cc_par_cnt = 1; /* Param count, including argv0      */
-static u8 clang_type = CLANG_LAF_TYPE;
+static u8 clang_type = CLANG_ORIG_TYPE;
 static u8 is_cxx = 0;
 
 static void add_llvm_pass(char *pass_name)
@@ -298,21 +298,23 @@ static void add_runtime()
 
 static void edit_params(u32 argc, char **argv)
 {
-    if (clang_type == CLANG_ORIG_TYPE)
-        return;
-
     u8 fortify_set = 0, asan_set = 0, x_set = 0, maybe_linking = 1, bit_mode = 0;
     u8 maybe_assembler = 0;
     u8 *name;
 
-    cc_params = ck_alloc((argc + 128) * sizeof(u8 *));
 
     name = strrchr(argv[0], '/');
     if (!name)
         name = argv[0];
     else
         name++;
+        
     check_type(name);
+
+    if (clang_type == CLANG_ORIG_TYPE)
+        return;
+
+    cc_params = ck_alloc((argc + 128) * sizeof(u8 *));
 
     if (is_cxx)
     {
@@ -632,7 +634,19 @@ int main(int argc, char **argv)
         fclose(f);
     }
 
-    execvp(cc_params[0], (char **)cc_params);
+    if (clang_type == CLANG_ORIG_TYPE) {
+        if (strstr(argv[0], "mirage-clang++")) {
+            argv[0] = W_CLANGXX;
+            execvp(W_CLANGXX, (char **)argv);
+        }
+        else {
+            argv[0] = W_CLANG;
+            execvp(W_CLANG, (char **)argv);
+        }
+    } else {
+        execvp(cc_params[0], (char **)cc_params);
+    }
+    
 
     FATAL("Oops, failed to execute '%s' - check your PATH", cc_params[0]);
 

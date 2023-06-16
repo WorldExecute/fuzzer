@@ -44,7 +44,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Use libc++ for clang, instead of libstdc++
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 
 #include_directories(/usr/lib/llvm-10/include/llvm)
 find_package(LLVM REQUIRED CONFIG)
