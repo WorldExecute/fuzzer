@@ -555,7 +555,7 @@ static void split_compare(Module &M)
     preHandleCmpInst(M);
 
 
-    errs() << "Split-compare-pass, from laf.intel@gmail.com, modified by me\n";
+    errs() << "Split-compare-pass, modified based on version of laf.intel@gmail.com\n";
 
     switch (bitw)
     {

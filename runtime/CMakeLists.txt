@@ -27,37 +27,37 @@ set_target_properties(PHANTOM_RT PROPERTIES OUTPUT_NAME "phantom-rt")
 
 add_library(
     AFL STATIC
-    afl-llvm-rt.o.c
     afl_driver.cpp
+    afl-llvm-rt.o.c
 )
 
 add_library(
     Source STATIC
-    source-rt.o.c
     afl_driver.cpp
+    source-rt.o.c
 )
 
 add_library(
     Phantom STATIC
-    phantom-rt.o.c
     afl_driver.cpp
+    phantom-rt.o.c
 )
 
 add_library(
     DTA STATIC
-    dta-rt.c
     dta_driver.cpp
+    dta-rt.c
 )
 
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -Wno-pointer-sign")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wno-pointer-sign")
 
-install (TARGETS AFL_RT DESTINATION ${MIRAGE_LIB_DIR})
-install (TARGETS SOURCE_RT DESTINATION ${MIRAGE_LIB_DIR})
-install (TARGETS DTA_RT DESTINATION ${MIRAGE_LIB_DIR})
-install (TARGETS PHANTOM_RT DESTINATION ${MIRAGE_LIB_DIR})
-install (TARGETS AFL DESTINATION ${MIRAGE_LIB_DIR})
-install (TARGETS Source DESTINATION ${MIRAGE_LIB_DIR})
-install (TARGETS DTA DESTINATION ${MIRAGE_LIB_DIR})
-install (TARGETS Phantom DESTINATION ${MIRAGE_LIB_DIR})
+install (TARGETS AFL_RT      DESTINATION ${MIRAGE_LIB_DIR})
+install (TARGETS SOURCE_RT   DESTINATION ${MIRAGE_LIB_DIR})
+install (TARGETS DTA_RT      DESTINATION ${MIRAGE_LIB_DIR})
+install (TARGETS PHANTOM_RT  DESTINATION ${MIRAGE_LIB_DIR})
+install (TARGETS AFL         DESTINATION ${MIRAGE_LIB_DIR})
+install (TARGETS Source      DESTINATION ${MIRAGE_LIB_DIR})
+install (TARGETS DTA         DESTINATION ${MIRAGE_LIB_DIR})
+install (TARGETS Phantom     DESTINATION ${MIRAGE_LIB_DIR})

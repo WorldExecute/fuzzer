@@ -1816,8 +1816,6 @@ bool IntegratedCovPhantom::doInitialization(Module &module)
     {
         edge_id = 1;
     }
-    outs() << "===\nHello, " << moduleName 
-            << "\nload init edge id: " << edge_id << "\n---\n";
 
     return Pass::doInitialization(module);
 }

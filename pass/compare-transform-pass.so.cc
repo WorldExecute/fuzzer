@@ -655,8 +655,7 @@ static bool transformCmps(Module &M, const bool processStrcmp,
 }
 
 static void compare_transform(Module &M) {
-  llvm::errs() << "Running compare-transform-pass, from laf.intel@gmail.com, "
-                  "modified by me\n";
+  llvm::errs() << "Running compare-transform-pass, modified based on version of laf.intel@gmail.com\n";
   LLVMContext &C = M.getContext();
   ZERO = ConstantInt::get(C, APInt(32, 0));
   ZERO_8 = ConstantInt::get(C, APInt(8, 0));

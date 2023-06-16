@@ -52,7 +52,7 @@ void commonModuleTransform(Module &M, bool NoLaf)
     FPM.addPass(InstCombinePass(true));
     FPM.addPass(EarlyCSEPass(true));
     FPM.addPass(createFunctionToLoopPassAdaptor(LICMPass(), true));
-    llvm::errs() << "Running simple-simplify-CFG-pass by me\n";
+    llvm::errs() << "Running simple-simplify-CFG-pass\n";
     // FPM.addPass(SimpleSimplifyCFGPass());
 
     MPM.addPass(InferFunctionAttrsPass());
