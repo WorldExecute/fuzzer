@@ -152,6 +152,7 @@ static void preHandleCmpInst(Module &M)
 
 
 /* splits icmps of size bitw into two nested icmps with bitw/2 size each */
+[[maybe_unused]]
 static bool splitCompares(Module &M, unsigned bitw)
 {
     LLVMContext &C = M.getContext();
@@ -554,7 +555,7 @@ static void split_compare(Module &M)
     preHandleCmpInst(M);
 
 
-    errs() << "Split-compare-pass, from laf.intel@gmail.com, modified by me\n";
+    errs() << "Split-compare-pass, modified based on version of laf.intel@gmail.com\n";
 
     switch (bitw)
     {

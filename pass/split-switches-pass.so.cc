@@ -259,10 +259,8 @@ static bool splitSwitches(Module &M)
     return false;
   errs() << "Rewriting " << switches.size() << " switch statements "
          << "\n";
-  int i = 0;
   for (auto &SI : switches)
   {
-    i++;
     BasicBlock *CurBlock = SI->getParent();
     BasicBlock *OrigBlock = CurBlock;
     Function *F = CurBlock->getParent();
@@ -336,7 +334,7 @@ static bool splitSwitches(Module &M)
 
 static void split_switch(Module &M)
 {
-  llvm::errs() << "Running split-switches-pass, from laf.intel@gmail.com, modified by me\n";
+  llvm::errs() << "Running split-switches-pass, modified based on version of laf.intel@gmail.com\n";
   splitSwitches(M);
   verifyModule(M);
 

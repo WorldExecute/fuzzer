@@ -7,3 +7,8 @@ seeds_binary/
 !.gitignore
 .*/
 compile_commands.json
+*.so
+*.o
+*.out
+obj-intel64/
+obj-intel32/
