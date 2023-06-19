@@ -447,7 +447,7 @@ static inline void update_compact_exp_edges() {
 
 #else
   u32 *current = (u32 *)source_map;
-  u32 *current = (u32 *)virgin_bits;
+  u32 *virgin = (u32 *)virgin_bits;
 
   u32 i = (MAP_SIZE >> 2);
   static const u8 BOUND = 4;
@@ -1508,6 +1508,9 @@ void taint_analysis_run(TaintMode mode, char *argv[]) {
 
     reset_taint_shm(mode);
     execvp((char *)PIN_PATH, taint_run_argv);
+
+    PFATAL("execvp() for taint analysis failed!\n"
+           "Please check if the PIN_ROOT is correct!\n");
   } else {
     /*不可用SIGALARM设置超时handler，因为其已被AFL占用*/
     pin_pid = pid;

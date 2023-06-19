@@ -21,6 +21,20 @@
 
 #define MIRAGE_MAIN
 
+#ifndef WRAPPED_CLANG
+#define WRAPPED_CLANG clang
+#endif
+
+#ifndef WRAPPED_CLANGXX
+#define WRAPPED_CLANGXX clang++ 
+#endif
+
+#define __QUOTE(x) #x
+#define __MIRAGE_STR(x) __QUOTE(x)
+#define W_CLANG   __MIRAGE_STR(WRAPPED_CLANG)
+#define W_CLANGXX __MIRAGE_STR(WRAPPED_CLANGXX)
+
+
 #include "alloc-inl.h"
 #include "debug.h"
 #include "defs.h"
@@ -35,7 +49,7 @@
 static u8 *obj_path;       /* Path to runtime libraries         */
 static u8 **cc_params;     /* Parameters passed to the real CC  */
 static u32 cc_par_cnt = 1; /* Param count, including argv0      */
-static u8 clang_type = CLANG_LAF_TYPE;
+static u8 clang_type = CLANG_ORIG_TYPE;
 static u8 is_cxx = 0;
 
 static void add_llvm_pass(char *pass_name)
@@ -174,13 +188,14 @@ static void check_type(char *name)
     }
 }
 
-static u8 check_if_assembler(u32 argc, const char **argv)
+static u8 check_if_assembler(u32 argc, char **argv)
 {
     /* Check if a file with an assembler extension ("s" or "S") appears in argv */
 
+    u8 *cur = NULL;
     while (--argc)
     {
-        u8 *cur = *(++argv);
+        cur = *(++argv);
 
         const u8 *ext = strrchr(cur, '.');
         if (ext && (!strcmp(ext + 1, "s") || !strcmp(ext + 1, "S")))
@@ -283,31 +298,33 @@ static void add_runtime()
 
 static void edit_params(u32 argc, char **argv)
 {
-    if (clang_type == CLANG_ORIG_TYPE)
-        return;
-
     u8 fortify_set = 0, asan_set = 0, x_set = 0, maybe_linking = 1, bit_mode = 0;
     u8 maybe_assembler = 0;
     u8 *name;
 
-    cc_params = ck_alloc((argc + 128) * sizeof(u8 *));
 
     name = strrchr(argv[0], '/');
     if (!name)
         name = argv[0];
     else
         name++;
+        
     check_type(name);
+
+    if (clang_type == CLANG_ORIG_TYPE)
+        return;
+
+    cc_params = ck_alloc((argc + 128) * sizeof(u8 *));
 
     if (is_cxx)
     {
         u8 *alt_cxx = getenv("MIRAGE_CXX");
-        cc_params[0] = alt_cxx ? alt_cxx : (u8 *)"clang++";
+        cc_params[0] = alt_cxx ? alt_cxx : (u8 *)W_CLANGXX;
     }
     else
     {
         u8 *alt_cc = getenv("MIRAGE_CC");
-        cc_params[0] = alt_cc ? alt_cc : (u8 *)"clang";
+        cc_params[0] = alt_cc ? alt_cc : (u8 *)W_CLANG;
     }
 
     maybe_assembler = check_if_assembler(argc, argv);
@@ -552,10 +569,10 @@ int main(int argc, char **argv)
         }
         else if (argv[1][0] == '-') {
             if (strstr(argv[0], "mirage-clang++")) {
-                execlp("clang++", "clang++", argv[1], NULL);
+                execlp(W_CLANGXX, W_CLANGXX, argv[1], NULL);
             }
             else {
-                execlp("clang", "clang", argv[1], NULL);    
+                execlp(W_CLANG, W_CLANG, argv[1], NULL);    
             }
         }
     } 
@@ -608,7 +625,7 @@ int main(int argc, char **argv)
             fprintf(f, "%s \\\n", argv[i++]);
         }
         fprintf(f, "\n\n");
-        char **str = cc_params;
+        char **str = (char **) cc_params;
         while (*str != NULL)
         {
             fprintf(f, "%s \\\n", *str);
@@ -617,7 +634,19 @@ int main(int argc, char **argv)
         fclose(f);
     }
 
-    execvp(cc_params[0], (char **)cc_params);
+    if (clang_type == CLANG_ORIG_TYPE) {
+        if (strstr(argv[0], "mirage-clang++")) {
+            argv[0] = W_CLANGXX;
+            execvp(W_CLANGXX, (char **)argv);
+        }
+        else {
+            argv[0] = W_CLANG;
+            execvp(W_CLANG, (char **)argv);
+        }
+    } else {
+        execvp(cc_params[0], (char **)cc_params);
+    }
+    
 
     FATAL("Oops, failed to execute '%s' - check your PATH", cc_params[0]);
 

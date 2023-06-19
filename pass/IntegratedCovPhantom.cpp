@@ -1,8 +1,10 @@
-#include <stack>
 
-#include <string.h>
 #include "config.h"
+#include "utils.h"
 #include "debug.h"
+
+#include <stack>
+#include <string.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -37,9 +39,7 @@
 #include "llvm/InitializePasses.h"
 #include <vector>
 
-#include "debug.h"
 #include <ostream>
-#include "utils.h"
 
 using namespace llvm;
 
@@ -101,19 +101,19 @@ static cl::opt<bool> NoLaf(
         }                                                \
     }
 
-static void inline addDep2Set(SmallPtrSetImpl<Value *> &set, Value *val)
-{
-    if (BinaryOperator *bo = dyn_cast<BinaryOperator>(val))
-    {
-        set.insert(bo);
-        addDep2Set(set, bo->getOperand(0));
-        addDep2Set(set, bo->getOperand(1));
-    }
-    else
-    {
-        addInsn2set(set, val)
-    }
-}
+// static void inline addDep2Set(SmallPtrSetImpl<Value *> &set, Value *val)
+// {
+//     if (BinaryOperator *bo = dyn_cast<BinaryOperator>(val))
+//     {
+//         set.insert(bo);
+//         addDep2Set(set, bo->getOperand(0));
+//         addDep2Set(set, bo->getOperand(1));
+//     }
+//     else
+//     {
+//         addInsn2set(set, val)
+//     }
+// }
 
 #define addInsn2vec(vec, insn)                               \
     {                                                        \
@@ -129,21 +129,21 @@ static void inline addDep2Set(SmallPtrSetImpl<Value *> &set, Value *val)
         }                                                    \
     }
 
-static void inline addDep2Vec(SmallVectorImpl<Value *> &vec, Value *val)
-{
-    if (!val)
-        return;
-    if (BinaryOperator *bo = dyn_cast<BinaryOperator>(val))
-    {
-        vec.push_back(bo);
-        addDep2Vec(vec, bo->getOperand(0));
-        addDep2Vec(vec, bo->getOperand(1));
-    }
-    else
-    {
-        addInsn2vec(vec, val)
-    }
-}
+// static void inline addDep2Vec(SmallVectorImpl<Value *> &vec, Value *val)
+// {
+//     if (!val)
+//         return;
+//     if (BinaryOperator *bo = dyn_cast<BinaryOperator>(val))
+//     {
+//         vec.push_back(bo);
+//         addDep2Vec(vec, bo->getOperand(0));
+//         addDep2Vec(vec, bo->getOperand(1));
+//     }
+//     else
+//     {
+//         addInsn2vec(vec, val)
+//     }
+// }
 
 
 #define getEdgeId(from, to) ConstantInt::get(Int32Ty, (from >> 1) ^ to)
@@ -217,6 +217,7 @@ static inline BasicBlock *getIPDomBB(BasicBlock *bb)
     return nullptr;
 }
 
+[[maybe_unused]]
 static inline BasicBlock *getICoDomBB(BasicBlock *bb)
 {
     if (bb == nullptr)
@@ -891,6 +892,7 @@ NestedIfNode *NestedIfNode::getNestedIfHead()
     return hoistBorder == nullptr ? root : hoistBorder;
 }
 
+[[maybe_unused]]
 static bool isDirectlyAffectedByPHI(BasicBlock *from, BasicBlock *to)
 {
     for (auto &phi : to->phis())
@@ -1730,7 +1732,7 @@ static void prepare(Module &M)
 
 bool IntegratedCovPhantom::doInitialization(Module &module)
 {
-    moduleName = getModuleName(module);
+    moduleName = getUniqModuleName(module);
     uid_t uid = getuid();
     struct passwd *pw = getpwuid(uid);
     std::string edgeIdFilePath = pw->pw_dir;
@@ -1760,8 +1762,6 @@ bool IntegratedCovPhantom::doInitialization(Module &module)
     {
         edge_id = 1;
     }
-    outs() << "===\nHello, " << moduleName 
-            << "\nload init edge id: " << edge_id << "\n---\n";
 
     return Pass::doInitialization(module);
 }

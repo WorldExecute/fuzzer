@@ -54,7 +54,7 @@ void commonModuleTransform(Module &M, bool NoLaf)
     FPM.addPass(InstCombinePass(true));
     FPM.addPass(EarlyCSEPass(true));
     FPM.addPass(createFunctionToLoopPassAdaptor(LICMPass(), true));
-    llvm::errs() << "Running simple-simplify-CFG-pass by me\n";
+    llvm::errs() << "Running simple-simplify-CFG-pass\n";
     // FPM.addPass(SimpleSimplifyCFGPass());
 
     MPM.addPass(InferFunctionAttrsPass());
@@ -103,18 +103,9 @@ void doO3Optimization(Module &M, bool DebugLogging, bool LTOPreLink) {
  * @param M 
  * @return std::string 
  */
-std::string getModuleName(Module& M) {
-    auto mName = M.getName().str();
-    // int BB_Size=0;
-    // for (auto &F: M) {
-    //     for (auto &BB: F) {
-    //         BB_Size ++;
-    //     }
-    // }
-    // char num[11];
-    // sprintf(num, "%u", BB_Size);
-    // mName += "-";
-    // mName += num; 
+std::string getUniqModuleName(Module& M) {
+    std::string mName = M.getName();
+
     char num[11];
     sprintf(num, "%u", M.getInstructionCount());
     mName += "-";

@@ -1,6 +1,6 @@
 
 add_custom_command(OUTPUT mirage-fuzz
-        COMMAND make -C ${CMAKE_CURRENT_SOURCE_DIR} OBJ_DST=${CMAKE_CURRENT_BINARY_DIR} mirage-fuzz
+        COMMAND env CC=gcc make -C ${CMAKE_CURRENT_SOURCE_DIR} OBJ_DST=${CMAKE_CURRENT_BINARY_DIR} mirage-fuzz
 )
 
 add_custom_target(FUZZER ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mirage-fuzz)
