@@ -50,6 +50,7 @@ enum fuzz_strategy {
 typedef enum fuzz_strategy FuzzStrategy;
 
 FuzzStrategy fuzz_st;
+u8 *time_stat = NULL;
 
 // ------------------------ From AFL-Fuzz -------------------------------------
 static s32 dev_null_fd = -1;
@@ -1875,12 +1876,17 @@ u8 pre_splice(u32 curr_id, u8 *curr_seed_path, u8 *curr_buf, u32 curr_len) {
   }
 }
 
-static inline void print_time() {
+static inline void set_time_statistics() {
   // u64 random_time = 0, dry_time = 0, taint_query_time =0 ,
   // taint_splice_time = 0, query_time = 0, parse_answer_time =0, my_total_time
   // = 0, delta ;
-  double CPS = 1000000ULL;
-  u8 *time_log = alloc_printf(
+  const double CPS = 1000000ULL;
+  
+  if (time_stat != NULL) {
+    ck_free(time_stat);
+  }
+  
+  time_stat = alloc_printf(
       "\n--------------- time statistics --------------\n"
       "pre_splice: %.3lf, random: %.3lf, dry: %.3lf\n"
       "taint_query: %.3lf, taint_splice: %.3lf, con_query: %.3lf\n"
@@ -1891,10 +1897,6 @@ static inline void print_time() {
       taint_query_time / CPS, taint_splice_time / CPS, query_time / CPS,
       parse_answer_time / CPS, DTA_time / CPS, d_mutate_time / CPS,
       my_total_time / CPS, afl_time / CPS);
-  LOGD("%s", time_log);
-  FILE *t_log = fopen(time_log_file, "a+");
-  fprintf(t_log, "%s", time_log);
-  fclose(t_log);
 }
 
 void post_splice() {
@@ -1903,7 +1905,7 @@ void post_splice() {
   if (print_time_count > 200) {
     print_time_count = 0;
     delta = get_cur_time();
-    print_time();
+    set_time_statistics();
     write_map();
     my_total_time += get_cur_time() - delta;
   }
