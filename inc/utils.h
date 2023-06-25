@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstring>
 
+#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Transforms/Scalar/LICM.h"
 
@@ -113,9 +114,13 @@ bool checkFunctionInWhiteList(llvm::Function *F);
 
 void commonModuleTransform(llvm::Module &, bool);
 void doO3Optimization(llvm::Module &M, bool DebugLogging, bool LTOPreLink);
-std::string getModuleName(llvm::Module& M);
+std::string getUniqModuleName(llvm::Module& M);
 
 bool isSanitizeFunc(llvm::Function *F);
+
+bool isBlacklisted(llvm::Function *F);
+
+llvm::Value *castArgType(llvm::IRBuilder<> &IRB, llvm::Value *V);
 
 //bool promoteMemoryToRegister(Function &F, DominatorTree &DT,
 //                             AssumptionCache &AC);

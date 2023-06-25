@@ -5,9 +5,12 @@
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/MemorySSA.h"
 #include "llvm/Analysis/PostDominators.h"
+#include "llvm/IR/Constants.h"
 #include "llvm/IR/Dominators.h"
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Instructions.h"
 #include "llvm/IR/Value.h"
+#include "llvm/Support/raw_ostream.h"
 
 #include <cstdint>
 #include <stack>
@@ -38,20 +41,6 @@ static uint8_t LoopConsLevel = 1;
         }                                                \
     }
 
-static void inline addDep2Set(SmallPtrSetImpl<Value *> &set, Value *val)
-{
-    if (BinaryOperator *bo = dyn_cast<BinaryOperator>(val))
-    {
-        set.insert(bo);
-        addDep2Set(set, bo->getOperand(0));
-        addDep2Set(set, bo->getOperand(1));
-    }
-    else
-    {
-        addInsn2set(set, val)
-    }
-}
-
 #define addInsn2vec(vec, insn)                               \
     {                                                        \
         if (insn)                                            \
@@ -66,22 +55,15 @@ static void inline addDep2Set(SmallPtrSetImpl<Value *> &set, Value *val)
         }                                                    \
     }
 
-static void inline addDep2Vec(SmallVectorImpl<Value *> &vec, Value *val)
-{
-    if (!val)
-        return;
-    if (BinaryOperator *bo = dyn_cast<BinaryOperator>(val))
-    {
-        vec.push_back(bo);
-        addDep2Vec(vec, bo->getOperand(0));
-        addDep2Vec(vec, bo->getOperand(1));
-    }
-    else
-    {
-        addInsn2vec(vec, val)
-    }
-}
 
+static inline u32 next_edge_id()
+{
+    static u32 edge_id = 1;
+    if (++edge_id == 0x10000) {
+        edge_id = 1;
+    }
+    return edge_id;
+}
 
 
 static inline bool hasIntersect(const SmallVectorImpl<Value *> &vec,
@@ -176,7 +158,7 @@ static inline Instruction *cross(Instruction *i1, Instruction *i2)
     return DT->dominates(i1, i2) ? i2 : i1;
 }
 
-static inline bool isTrueSuccessor(const BranchInst *branchInst,
+static inline bool isThenSuccessor(const BranchInst *branchInst,
                                    const BasicBlock *block)
 {
     return DT->dominates(branchInst->getSuccessor(0), block);
@@ -552,11 +534,13 @@ NestedIfNode::NestedIfNode(NestedIfNode *parent, NestedIfNode *root,
     : parent(parent), root(root), hoistBorder(nullptr), bb(bb), entry(entry),
       br(br), cond(cond), thenBranch(isThen) {
 
-//   u32 then_id = next_edge_id();
-//   u32 else_id = next_edge_id();
+  u32 then_id = next_edge_id();
+  u32 else_id = next_edge_id();
 
-//   thenEdge = num2LLVMConstant(then_id);
-//   elseEdge = num2LLVMConstant(else_id);
+  auto *Int32Ty = Type::getInt32Ty(bb->getContext());
+
+  thenEdge = ConstantInt::get(Int32Ty, then_id);
+  elseEdge = ConstantInt::get(Int32Ty, else_id);
   cmpSplit = isCmpSplit(bb);
 }
 
@@ -564,11 +548,13 @@ NestedIfNode::NestedIfNode(BasicBlock *bb, BranchInst *br, Instruction *cond)
     : parent(nullptr), root(this), hoistBorder(nullptr), bb(bb), entry(bb),
       br(br), cond(cond) {
 
-//   u32 then_id = next_edge_id();
-//   u32 else_id = next_edge_id();
+  u32 then_id = next_edge_id();
+  u32 else_id = next_edge_id();
 
-//   thenEdge = num2LLVMConstant(then_id);
-//   elseEdge = num2LLVMConstant(else_id);
+  auto *Int32Ty = Type::getInt32Ty(bb->getContext());
+
+  thenEdge = ConstantInt::get(Int32Ty, then_id);
+  elseEdge = ConstantInt::get(Int32Ty, else_id);
   cmpSplit = isCmpSplit(bb);
 }
 
@@ -610,7 +596,7 @@ ConstantInt *NestedIfNode::getElseEdge() const { return elseEdge; }
 
 NestedIfNode *NestedIfNode::getRoot() const { return root; }
 
-void NestedIf::modifyCovInstArg(BasicBlock *curBB, Value *cond, bool isThen) {
+void NestedIfTree::modifyCovInstArg(BasicBlock *curBB, Value *cond, bool isThen) {
 
   if (CallInst *instFuncCall =
           dyn_cast<CallInst>(curBB->getFirstNonPHIOrDbgOrLifetime())) {
@@ -640,7 +626,7 @@ void NestedIf::modifyCovInstArg(BasicBlock *curBB, Value *cond, bool isThen) {
   }
 }
 
-void NestedIf::markHoistBarrier() {
+void NestedIfTree::markHoistBarrier() {
 
   SmallPtrSet<Value *, 16> hoistedInsnDepVals;
   std::stack<NestedIfNode *> st;
@@ -649,6 +635,9 @@ void NestedIf::markHoistBarrier() {
   while (!st.empty()) {
     NestedIfNode *ni = st.top();
     st.pop();
+    if (ni == nullptr) {
+      continue;
+    }
 
     ni->extractDirectDepVals();
 
@@ -698,7 +687,7 @@ void NestedIf::markHoistBarrier() {
   }
 }
 
-void NestedIf::doMutateIf() {
+void NestedIfTree::doMutateIf() {
   if (!root->empty()) {
     markHoistBarrier();
     doRootHoist();
@@ -706,7 +695,7 @@ void NestedIf::doMutateIf() {
   doSinkInstr();
 }
 
-void NestedIf::doRootHoist() {
+void NestedIfTree::doRootHoist() {
 
   std::stack<NestedIfNode *> st;
   st.push(root);
@@ -729,66 +718,66 @@ void NestedIf::doRootHoist() {
   }
 }
 
-void NestedIf::doSinkInstr() {
+void NestedIfTree::doSinkInstr() {
   std::stack<NestedIfNode *> st;
   st.push(root);
 
-  while (!st.empty()) {
-    NestedIfNode *ni = st.top();
-    st.pop();
+  // while (!st.empty()) {
+  //   NestedIfNode *ni = st.top();
+  //   st.pop();
 
-    // Instruction *cond = ni->getCond();
-    // for (NestedIfNode *ifElse : ni->getIfElses()) {
-    //   st.push(ifElse);
-    // }
+  //   Instruction *cond = ni->getCond();
+  //   for (NestedIfNode *ifElse : ni->getIfElses()) {
+  //     st.push(ifElse);
+  //   }
 
-    // for (NestedIfNode *ifThen : ni->getIfThens()) {
-    //   st.push(ifThen);
-    // }
+  //   for (NestedIfNode *ifThen : ni->getIfThens()) {
+  //     st.push(ifThen);
+  //   }
 
-    // ConstantInt *thenEdge = ni->getThenEdge(), *elseEdge = ni->getElseEdge();
+  //   ConstantInt *thenEdge = ni->getThenEdge(), *elseEdge = ni->getElseEdge();
 
-    // if (PhantomMode || IntegMode) {
+  //   if (PhantomMode || IntegMode) {
 
-    //   Instruction *insertPoint = cond->getNextNonDebugInstruction();
+  //     Instruction *insertPoint = cond->getNextNonDebugInstruction();
 
-    //   if (!insertPoint) {
+  //     if (!insertPoint) {
 
-    //     if (auto invoke = dyn_cast<InvokeInst>(cond)) {
-    //       BasicBlock *normalDest = invoke->getNormalDest();
-    //       insertPoint = normalDest->getFirstNonPHIOrDbgOrLifetime();
-    //     }
-    //   }
+  //       if (auto invoke = dyn_cast<InvokeInst>(cond)) {
+  //         BasicBlock *normalDest = invoke->getNormalDest();
+  //         insertPoint = normalDest->getFirstNonPHIOrDbgOrLifetime();
+  //       }
+  //     }
 
-    //   if (insertPoint) {
-    //     if (isa<PHINode>(insertPoint)) {
-    //       insertPoint =
-    //           insertPoint->getParent()->getFirstNonPHIOrDbgOrLifetime();
-    //     }
-    //     while (isa<LandingPadInst>(insertPoint) ||
-    //            isa<ExtractValueInst>(insertPoint)) {
-    //       insertPoint = insertPoint->getNextNonDebugInstruction();
-    //     }
-    //     CallInst::Create(phantomFunc, {cond, thenEdge, elseEdge}, "",
-    //                      insertPoint);
-    //   }
-    // }
+  //     if (insertPoint) {
+  //       if (isa<PHINode>(insertPoint)) {
+  //         insertPoint =
+  //             insertPoint->getParent()->getFirstNonPHIOrDbgOrLifetime();
+  //       }
+  //       while (isa<LandingPadInst>(insertPoint) ||
+  //              isa<ExtractValueInst>(insertPoint)) {
+  //         insertPoint = insertPoint->getNextNonDebugInstruction();
+  //       }
+  //       CallInst::Create(phantomFunc, {cond, thenEdge, elseEdge}, "",
+  //                        insertPoint);
+  //     }
+  //   }
 
-    // if (SourceMode || IntegMode)
-    //   CallInst::Create(sourceSinkFunc, {cond, thenEdge, elseEdge}, "",
-    //                    ni->getBranchInsn());
-    // if (PinMode || IntegMode)
-    //   taintSinkForBranch(ni);
-  }
+  //   if (SourceMode || IntegMode)
+  //     CallInst::Create(sourceSinkFunc, {cond, thenEdge, elseEdge}, "",
+  //                      ni->getBranchInsn());
+  //   if (PinMode || IntegMode)
+  //     taintSinkForBranch(ni);
+  // }
 }
 
-NestedIf::NestedIf(NestedIfNode *root) : root(root) {}
+NestedIfTree::NestedIfTree(NestedIfNode *root) : root(root) {}
 
-NestedIf::~NestedIf() { delete root; }
+NestedIfTree::~NestedIfTree() { delete root; }
 
-NestedIfNode *NestedIf::getRoot() const { return root; }
+NestedIfNode *NestedIfTree::getRoot() const { return root; }
 
-void NestedIf::taintSinkForBranch(NestedIfNode *ni) {
+void NestedIfTree::taintSinkForBranch(NestedIfNode *ni) {
   BranchInst *Br = ni->getBranchInsn();
   if (Br->isConditional() && Br->getNumSuccessors() == 2) {
 
@@ -820,48 +809,48 @@ void NestedIf::taintSinkForBranch(NestedIfNode *ni) {
   }
 }
 
-void NestedIf::processCmpForTaintSink(CmpInst *Cmp, ConstantInt *thenEdge,
+void NestedIfTree::processCmpForTaintSink(CmpInst *Cmp, ConstantInt *thenEdge,
                                       ConstantInt *elseEdge,
                                       Instruction *InsertPoint1,
                                       Instruction *InsertPoint2) {
-//   Value *OpArg[2];
-//   OpArg[0] = Cmp->getOperand(0);
-//   OpArg[1] = Cmp->getOperand(1);
-//   Type *OpType = OpArg[0]->getType();
-//   if (!((OpType->isIntegerTy() && OpType->getIntegerBitWidth() <= 64) ||
-//         OpType->isFloatTy() || OpType->isDoubleTy() || OpType->isPointerTy())) {
-//     processBoolCmpForTaintSink(Cmp, thenEdge, elseEdge, InsertPoint1,
-//                                InsertPoint2);
-//     return;
-//   }
-//   int num_bytes = OpType->getScalarSizeInBits() / 8;
-//   if (num_bytes == 0) {
-//     if (OpType->isPointerTy()) {
-//       num_bytes = 8;
-//     } else {
-//       return;
-//     }
-//   }
-//   IRBuilder<> IRB(InsertPoint1);
+  // Value *OpArg[2];
+  // OpArg[0] = Cmp->getOperand(0);
+  // OpArg[1] = Cmp->getOperand(1);
+  // Type *OpType = OpArg[0]->getType();
+  // if (!((OpType->isIntegerTy() && OpType->getIntegerBitWidth() <= 64) ||
+  //       OpType->isFloatTy() || OpType->isDoubleTy() || OpType->isPointerTy())) {
+  //   processBoolCmpForTaintSink(Cmp, thenEdge, elseEdge, InsertPoint1,
+  //                              InsertPoint2);
+  //   return;
+  // }
+  // int num_bytes = OpType->getScalarSizeInBits() / 8;
+  // if (num_bytes == 0) {
+  //   if (OpType->isPointerTy()) {
+  //     num_bytes = 8;
+  //   } else {
+  //     return;
+  //   }
+  // }
+  // IRBuilder<> IRB(InsertPoint1);
 
-//   Value *SizeArg = ConstantInt::get(IRB.getInt32Ty(), num_bytes);
-//   Value *CondExt = IRB.CreateZExt(Cmp, IRB.getInt32Ty());
-//   SetNoSanitize(CondExt);
-//   OpArg[0] = castArgType(IRB, OpArg[0]);
-//   OpArg[1] = castArgType(IRB, OpArg[1]);
+  // Value *SizeArg = ConstantInt::get(IRB.getInt32Ty(), num_bytes);
+  // Value *CondExt = IRB.CreateZExt(Cmp, IRB.getInt32Ty());
+  // SetNoSanitize(CondExt);
+  // OpArg[0] = castArgType(IRB, OpArg[0]);
+  // OpArg[1] = castArgType(IRB, OpArg[1]);
 
-//   CallInst *ProxyCall =
-//       IRB.CreateCall(phantomDTASink, {thenEdge, elseEdge, CondExt, SizeArg,
-//                                       OpArg[0], OpArg[1]});
-//   SetNoSanitize(ProxyCall);
+  // CallInst *ProxyCall =
+  //     IRB.CreateCall(phantomDTASink, {thenEdge, elseEdge, CondExt, SizeArg,
+  //                                     OpArg[0], OpArg[1]});
+  // SetNoSanitize(ProxyCall);
 
-//   IRB.SetInsertPoint(InsertPoint2);
-//   ProxyCall = IRB.CreateCall(sourceDTASink, {thenEdge, elseEdge, CondExt,
-//                                              SizeArg, OpArg[0], OpArg[1]});
-//   SetNoSanitize(ProxyCall);
+  // IRB.SetInsertPoint(InsertPoint2);
+  // ProxyCall = IRB.CreateCall(sourceDTASink, {thenEdge, elseEdge, CondExt,
+  //                                            SizeArg, OpArg[0], OpArg[1]});
+  // SetNoSanitize(ProxyCall);
 }
 
-void NestedIf::processBoolCmpForTaintSink(Value *Cond, ConstantInt *thenEdge,
+void NestedIfTree::processBoolCmpForTaintSink(Value *Cond, ConstantInt *thenEdge,
                                           ConstantInt *elseEdge,
                                           Instruction *InsertPoint1,
                                           Instruction *InsertPoint2) {
@@ -890,69 +879,74 @@ void NestedIf::processBoolCmpForTaintSink(Value *Cond, ConstantInt *thenEdge,
 }
 
 
-std::vector<NestedIf *> extractNestedIfs(DominatorTree *DT)
-{
-    DenseMap<BasicBlock *, NestedIfNode *> bb2node;
 
-    std::vector<NestedIf *> vec;
+NestedIfForeast::NestedIfForeast(DominatorTree *DT, PostDominatorTree *PDT) : DT(DT), PDT(PDT) {
+  ::llvm::DT  = DT;
+  ::llvm::PDT = PDT;
+  DenseMap<BasicBlock *, NestedIfNode *> bb2node;
+  std::stack<BasicBlock *> bbs;
 
-    std::stack<BasicBlock *> bbs;
+  auto *entryBB = DT->getRootNode()->getBlock();
 
-    auto *entryBB = DT->getRootNode()->getBlock();
-
-    for (auto node : post_order(DT->getRootNode()))
-    {
-        BasicBlock *BB = node->getBlock();
-        if (isSanitizeBB(BB))
-            continue;
+  for (auto node : post_order(DT->getRootNode()))
+  {
+      BasicBlock *BB = node->getBlock();
+      if (BB != nullptr)
         bbs.push(BB);
-    }
-    while (!bbs.empty())
-    {
-        BasicBlock *BB = bbs.top(), *scopeHeader = entryBB;
-        bbs.pop();
+  }
+  while (!bbs.empty())
+  {
+      BasicBlock *BB = bbs.top(), *scopeHeader = entryBB;
+      bbs.pop();
+      
+      Instruction *inst = (BB)->getTerminator();
 
-        Instruction *inst = (BB)->getTerminator();
+      BranchInst *br;
+      // TODO: support switch, etc...
+      if ((br = dyn_cast<BranchInst>(inst)) && (br->isConditional()))
+      {
+          if (br->getNumSuccessors() != 2)
+              continue;
+          Instruction *cond = dyn_cast<Instruction>(br->getCondition());
+          if (!cond)
+              continue;
+            
+          BasicBlock *parentBB = getOuterBlock(BB, scopeHeader);
+          NestedIfNode *parentNode = bb2node[parentBB];
+          NestedIfNode *node;
+          if (parentNode)
+          {
+              if (isThenSuccessor(parentNode->getBranchInsn(), BB))
+              {
+                  node = parentNode->addIfThen(BB);
+              }
+              else
+              {
+                  node = parentNode->addIfElse(BB);
+              }
+              if (!node)
+                  continue;
+              bb2node[BB] = node;
+          }
+          else
+          {
+              node = NestedIfNode::createRootNode(BB);
+              if (!node)
+                  continue;
+              bb2node[BB] = node;
+              trees.emplace_back(new NestedIfTree(node));
+          }
+      }
+  }
+}
 
-        BranchInst *br;
-        if ((br = dyn_cast<BranchInst>(inst)) && (br->isConditional()))
-        {
-            if (br->getNumSuccessors() != 2)
-                continue;
-            Instruction *cond = dyn_cast<Instruction>(br->getCondition());
-            if (!cond)
-                continue;
-              
-            BasicBlock *parentBB = getOuterBlock(BB, scopeHeader);
-            NestedIfNode *parentNode = bb2node[parentBB];
-            NestedIfNode *node;
-            if (parentNode)
-            {
-                if (isTrueSuccessor(parentNode->getBranchInsn(), BB))
-                {
-                    node = parentNode->addIfThen(BB);
-                }
-                else
-                {
-                    node = parentNode->addIfElse(BB);
-                }
-                if (!node)
-                    continue;
-                bb2node[BB] = node;
-            }
-            else
-            {
-                node = NestedIfNode::createRootNode(BB);
-                if (!node)
-                    continue;
-                bb2node[BB] = node;
-                vec.push_back(/*isBBOwnMetadata(BB, CMP_SPLIT) ?
-                              new CmpSplitNestedIf(node) : */
-                              new NestedIf(node));
-            }
-        }
-    }
-    return vec;
+
+void setContextForAnalysis(DominatorTree *DT, PostDominatorTree *PDT, 
+                           MemorySSA *MSSA, LoopInfo *LI) {
+  ::llvm::DT  = DT;
+  ::llvm::PDT = PDT;
+  ::llvm::MSSA = MSSA;
+  ::llvm::LI = LI;
 }
 
 }

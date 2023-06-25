@@ -3,44 +3,88 @@ include_directories(./inc)
 set( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall --std=c++11 -O3 -fPIC" )
 set( CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -Wall -O3 -fPIC" )
 
-add_library(TRANSFORM STATIC
-        compare-transform-pass.so.cc
-        split-switches-pass.so.cc
-        split-compares-pass.so.cc
+# forbid rtti, keep the same with llvm
+set( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fno-rtti" )
+
+
+# Analysis Pass
+add_llvm_library(
+        NestedIfPass SHARED
+        NestedIfAnalysis.cc
+        NestedIf.cc
+        utils.cc
+)
+
+
+
+#  Transformation Pass
+add_llvm_library(
+        BBRenamePass SHARED
+        BasicBlockRenamePass.cc
+)
+
+add_llvm_library(
+        SimplifyCFGPass SHARED
         SimpleSimplifyCFG.cc
         utils.cc
-        )
-
-add_library(
-    IntegratedCovPhantom MODULE
-        IntegratedCovPhantom.cpp
 )
-target_link_libraries(IntegratedCovPhantom TRANSFORM)
-set_target_properties(IntegratedCovPhantom PROPERTIES OUTPUT_NAME "IntegPass")
+
+add_llvm_library(
+        SplitSwitchesPass SHARED
+        split-switches-pass.so.cc
+        utils.cc
+)
+
+add_llvm_library(
+        SplitComparesPass SHARED
+        split-compares-pass.so.cc
+        utils.cc
+)
+
+add_llvm_library(
+        CompareTransformPass SHARED
+        compare-transform-pass.so.cc
+        utils.cc
+)
+
+# For afl-like coverage instrument
+add_llvm_library(
+        CovPass SHARED
+        afl-llvm-pass.cc
+)
+
+# For source PUT
+add_llvm_library(
+        SourcePass SHARED
+        SourcePass.cc
+        utils.cc
+)
+
+# For phantom PUT
+add_llvm_library(
+        PhantomPass SHARED
+        PhantomPass.cc
+        utils.cc
+)
+
+# For DTA
+add_llvm_library(
+        SinkPass SHARED
+        TaintSinkPass.cc
+        utils.cc
+)
 
 
-
-# Use C++11 to compile our pass (i.e., supply -std=c++11).
-target_compile_features(IntegratedCovPhantom PRIVATE cxx_range_for cxx_auto_type)
-
-
-# LLVM is (typically) built with no C++ RTTI. We need to match that;
-# otherwise, we'll get linker errors about missing RTTI data.
-set_target_properties(IntegratedCovPhantom PROPERTIES
-        COMPILE_FLAGS "-fno-rtti"
-        )
-
-# Get proper shared-library behavior (where symbols are not necessarily
-# resolved when the shared library is linked) on OS X.
-#include_directories(/usr/include/llvm-10/llvm)
-
-if(APPLE)
-    set_target_properties(IntegratedCovPhantom PROPERTIES
-            LINK_FLAGS "-undefined dynamic_lookup"
-            )
-endif(APPLE)
 
 add_definitions("-Wall -g")
 
 
-install (TARGETS IntegratedCovPhantom DESTINATION ${MIRAGE_PASS_DIR})
+install (TARGETS NestedIfPass               DESTINATION ${MIRAGE_PASS_DIR})
+install (TARGETS BBRenamePass               DESTINATION ${MIRAGE_PASS_DIR})
+install (TARGETS SimplifyCFGPass            DESTINATION ${MIRAGE_PASS_DIR})
+install (TARGETS SplitSwitchesPass          DESTINATION ${MIRAGE_PASS_DIR})
+install (TARGETS SplitComparesPass          DESTINATION ${MIRAGE_PASS_DIR})
+install (TARGETS CompareTransformPass       DESTINATION ${MIRAGE_PASS_DIR})
+install (TARGETS SourcePass                 DESTINATION ${MIRAGE_PASS_DIR})
+install (TARGETS PhantomPass                DESTINATION ${MIRAGE_PASS_DIR})
+install (TARGETS SinkPass                   DESTINATION ${MIRAGE_PASS_DIR})

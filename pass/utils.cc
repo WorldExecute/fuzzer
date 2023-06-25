@@ -104,7 +104,7 @@ void doO3Optimization(Module &M, bool DebugLogging, bool LTOPreLink) {
  * @return std::string 
  */
 std::string getUniqModuleName(Module& M) {
-    std::string mName = M.getName();
+    std::string mName = M.getName().str();
 
     char num[11];
     sprintf(num, "%u", M.getInstructionCount());
@@ -126,4 +126,38 @@ bool checkFunctionInWhiteList(Function *F) {
 bool isSanitizeFunc(Function *F) {
     StringRef name = F->getName();
     return name.startswith("asan.") || name.startswith("msan.") ;
+}
+
+bool isBlacklisted(llvm::Function *F) {
+    return false;
+}
+
+Value *castArgType(IRBuilder<> &IRB, Value *V)
+{
+    Type *OpType = V->getType();
+    Value *NV = V;
+    if (OpType->isFloatTy())
+    {
+        NV = IRB.CreateFPToUI(V, IRB.getInt32Ty());
+        SetNoSanitize(NV);
+        NV = IRB.CreateIntCast(NV, IRB.getInt64Ty(), false);
+        SetNoSanitize(NV);
+    }
+    else if (OpType->isDoubleTy())
+    {
+        NV = IRB.CreateFPToUI(V, IRB.getInt64Ty());
+        SetNoSanitize(NV);
+    }
+    else if (OpType->isPointerTy())
+    {
+        NV = IRB.CreatePtrToInt(V, IRB.getInt64Ty());
+    }
+    else
+    {
+        if (OpType->isIntegerTy() && OpType->getIntegerBitWidth() < 64)
+        {
+            NV = IRB.CreateZExt(V, IRB.getInt64Ty());
+        }
+    }
+    return NV;
 }

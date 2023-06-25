@@ -1,13 +1,18 @@
 #pragma once
 
 #include "llvm/ADT/SmallPtrSet.h"
+#include "llvm/Analysis/PostDominators.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Dominators.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/Support/raw_ostream.h"
+
 namespace llvm {
 
 class NestedIfNode;
+class MemorySSA;
+class LoopInfo;
 
 using u32 = uint32_t;
 
@@ -152,7 +157,7 @@ public:
  *      2. 嵌套if不得跨越LoopExiting
  *      3. 嵌套if需标标记含强依赖关系的边
  */
-class NestedIf {
+class NestedIfTree {
   NestedIfNode *root;
 
   void modifyCovInstArg(BasicBlock *curBB, Value *cond, bool isThen);
@@ -168,9 +173,9 @@ class NestedIf {
   void taintSinkForBranch(NestedIfNode *ni);
 
 public:
-  NestedIf(NestedIfNode *root);
+  NestedIfTree(NestedIfNode *root);
 
-  virtual ~NestedIf();
+  virtual ~NestedIfTree();
 
   virtual void markHoistBarrier();
 
@@ -184,6 +189,62 @@ public:
 };
 
 
-std::vector<NestedIf *>  extractNestedIfs(DominatorTree *DT);
+using NestedIfTreeList = SmallVector<NestedIfTree *, 4>;
+class NestedIfForeast {
+public:
+  using iterator = NestedIfTreeList::iterator;
+  NestedIfForeast(DominatorTree *DT, PostDominatorTree *PDT);
 
+  ~NestedIfForeast() {
+    for (auto *tree : trees) {
+      delete tree;
+    }
+  }
+
+  // define iterator
+  iterator begin() { return trees.begin(); }
+  iterator end() { return trees.end(); }
+
+  // define range
+  iterator_range<iterator> getRange() { return make_range(begin(), end()); }
+
+private:
+  inline BasicBlock *getIDomBB(BasicBlock *bb)
+  {
+    if (!bb) return nullptr;
+    auto *DTNode = DT->getNode(bb);
+    if (!DTNode) return nullptr;
+    auto *IDomNode = DTNode->getIDom();
+    if (IDomNode == nullptr)
+        return nullptr;
+    return IDomNode->getBlock();
+  }
+  
+  inline BasicBlock *getOuterBlock(BasicBlock *srcBB, BasicBlock *topBB)
+  {
+      
+      BasicBlock *domBB = getIDomBB(srcBB);
+      while (domBB != nullptr && PDT->dominates(srcBB, domBB))
+      {
+          srcBB = domBB;
+          domBB = getIDomBB(srcBB);
+      }
+      if (domBB == nullptr || !DT->dominates(topBB, domBB)) {
+        return nullptr;
+      }
+      return domBB;
+  }
+
+private:
+  NestedIfTreeList trees;
+  DominatorTree *DT;
+  PostDominatorTree *PDT;
+
+};
+
+std::vector<NestedIfTree *>  extractNestedIfs(DominatorTree *DT);
+
+
+void setContextForAnalysis(DominatorTree *DT, PostDominatorTree *PDT, 
+                           MemorySSA *MSSA, LoopInfo *LI);
 } // namespace llvm
