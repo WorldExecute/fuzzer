@@ -9,7 +9,6 @@ RUN apt update \
         g++ \
         git \
         libz3-dev \
-        ninja-build \
         python2 \
         zlib1g-dev \
         vim \
@@ -22,13 +21,13 @@ RUN apt update \
         python3 \
         python3-dev \
         python3-pip \
-        autoconf \
         automake \
-        libtool-bin \
         python-bs4 \
         libboost-all-dev \
         python3-distutils \
         llvm-12-tools \
+        autoconf libtool make language-pack-en-base \
+        ninja-build flex bison zlib1g-dev cargo 
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install update 

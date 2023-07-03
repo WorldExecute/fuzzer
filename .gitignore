@@ -13,3 +13,4 @@ compile_commands.json
 *.out
 obj-intel64/
 obj-intel32/
+todo.md

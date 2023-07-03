@@ -34,9 +34,14 @@
 
 namespace llvm {
 
+static cl::opt<bool> AFL("afl", cl::ZeroOrMore,
+                               cl::desc("AFL Mode. Default: false"),
+                               cl::value_desc("afl"), cl::init(false));
+
 static cl::opt<bool> NoLaf("nolaf", cl::ZeroOrMore,
                                cl::desc("No LafIntel Mode. Default: false"),
                                cl::value_desc("nolaf"), cl::init(false));
+
 
 static cl::opt<bool> NoCov("nocov", cl::ZeroOrMore,
                                 cl::desc("No Coverage Instrumentation. Default: false"),
@@ -123,6 +128,22 @@ static inline __pid_t emitChildPipeline(llvm::ModulePassManager &MPM,
   return pid;
 }
 
+static __pid_t instrumentAFL(llvm::ModuleAnalysisManager &MAM,
+                              llvm::Module &M,
+                              bool use_fork) {
+  // Parent process
+  llvm::ModulePassManager MPM;
+
+  // TaintSink Pass
+  llvm::errs() << "Running AFL Pass\n";
+  MPM.addPass(llvm::AFLCoveragePass());
+
+  auto pid = emitChildPipeline(MPM, MAM, M, ".afl.bc", use_fork);
+  llvm::errs() << "Taint AFL Pass finished\n";
+
+  return pid;
+}
+
 static __pid_t instrumentTaint(llvm::ModuleAnalysisManager &MAM,
                               llvm::Module &M,
                               bool use_fork) {
@@ -200,13 +221,21 @@ int main(int argc, char **argv) {
   llvm::FunctionAnalysisManager FAM;
   llvm::CGSCCAnalysisManager CGAM;
   llvm::ModuleAnalysisManager MAM;
-
+  std::vector<std::pair<InstrFunc, const char *>> instrumentations;
+  std::vector<std::pair<__pid_t, const char *>> childToWait;
+  
   // Register all the basic analyses with the managers.
   PB.registerModuleAnalyses(MAM);
   PB.registerCGSCCAnalyses(CGAM);
   PB.registerFunctionAnalyses(FAM);
   PB.registerLoopAnalyses(LAM);
   PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+
+
+  if (AFL) {
+    auto pid = instrumentAFL(MAM, *mod, true);
+    childToWait.push_back({pid, "AFL Pass"});
+  }
 
   llvm::ModulePassManager MPM;
   llvm::FunctionPassManager FPM;
@@ -217,13 +246,12 @@ int main(int argc, char **argv) {
   FPM.addPass(InstCombinePass(true));
   FPM.addPass(EarlyCSEPass(true));
   FPM.addPass(createFunctionToLoopPassAdaptor(LICMPass(), true));
-  llvm::errs() << "Running simple-simplify-CFG-passe\n";
-  // FPM.addPass(SimpleSimplifyCFGPass());
+  FPM.addPass(llvm::SimpleSimplifyCFGPass());
 
   MPM.addPass(BasicBlockRenamePass());
   MPM.addPass(InferFunctionAttrsPass());
   MPM.addPass(createModuleToFunctionPassAdaptor(std::move(FPM)));
-  FPM.addPass(llvm::SimpleSimplifyCFGPass());
+
   if (!NoLaf) {
       MPM.addPass(SplitNByteCmpPass());
       MPM.addPass(SplitFuncCmpPass());
@@ -246,7 +274,7 @@ int main(int argc, char **argv) {
   //  2. AFLSource Pass
   //  3. TaintSink Pass
 
-  std::vector<std::pair<InstrFunc, const char *>> instrumentations;
+  
   if (!NoSource) {
     instrumentations.push_back({instrumentSource, "Source Pass"});
   }
@@ -264,7 +292,6 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  std::vector<std::pair<__pid_t, const char *>> childToWait;
   // pop the final one
   auto [lastInstr, lastInstrName] = instrumentations.back();
   instrumentations.pop_back();

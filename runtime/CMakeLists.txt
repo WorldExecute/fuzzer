@@ -24,6 +24,11 @@ add_library(
 )
 set_target_properties(PHANTOM_RT PROPERTIES OUTPUT_NAME "phantom-rt")
 
+add_library(
+    Driver STATIC
+    afl_driver.cpp
+)
+
 
 add_library(
     AFL STATIC
