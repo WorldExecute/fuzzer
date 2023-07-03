@@ -34,6 +34,8 @@ extern FILE *__log;
 #define LOGD(...)
 #endif
 
+extern u8 *time_stat;
+
 struct ext_queue_entry {
   u32 id;
   u8 *taintmap_name;

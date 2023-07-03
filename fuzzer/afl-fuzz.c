@@ -3563,6 +3563,10 @@ static void write_stats_file(double bitmap_cvg, double stability, double eps) {
 #endif /* ^__APPLE__ */
     }
 
+    if (time_stat != NULL) {
+        fputs(time_stat, f);
+    }
+
     fclose(f);
 
 }
